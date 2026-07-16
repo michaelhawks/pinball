@@ -1,42 +1,52 @@
-// Debug overlay -- ball velocity, flipper angles, FPS, plunger charge.
-// Toggle with the backtick key. Built early per the project brief: makes
-// physics-constant tuning much faster than eyeballing it.
+import { PALETTE } from '../assets/sprites/palette.js';
+import { CANVAS_WIDTH } from '../game/TableConfig.js';
+
+// Player-facing HUD: score, ball number, and a brief chain/combo indicator.
+// Deliberately separate from DebugOverlay.js -- independent visibility,
+// independent draw call, so toggling the debug view never hides this.
 export class HUD {
   constructor(ctx) {
     this.ctx = ctx;
-    this.visible = true;
   }
 
-  toggle() {
-    this.visible = !this.visible;
-  }
-
-  draw({ fps, ball, leftFlipper, rightFlipper, plunger }) {
-    if (!this.visible) return;
+  draw({ score, ballNumber, combo, comboActive }) {
     const { ctx } = this;
-
-    const lines = [
-      `FPS: ${fps.toFixed(0)}`,
-      `ball pos: (${ball.x.toFixed(0)}, ${ball.y.toFixed(0)})`,
-      `ball vel: (${ball.vx.toFixed(0)}, ${ball.vy.toFixed(0)})  speed: ${ball.speed.toFixed(0)}`,
-      `flipper L: ${((leftFlipper.angle * 180) / Math.PI).toFixed(0)}deg  omega: ${leftFlipper.angularVelocity.toFixed(1)}`,
-      `flipper R: ${((rightFlipper.angle * 180) / Math.PI).toFixed(0)}deg  omega: ${rightFlipper.angularVelocity.toFixed(1)}`,
-      `plunger: ${(plunger.pullback * 100).toFixed(0)}%`,
-      `[ \` toggle debug | Z/ShiftL, M/ShiftR flip | Space plunge ]`,
-    ];
+    const barH = 34;
 
     ctx.save();
-    ctx.font = '11px monospace';
-    const pad = 6;
-    const lineH = 14;
-    const boxW = 230;
-    const boxH = lines.length * lineH + pad * 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(6, 6, boxW, boxH);
-    ctx.fillStyle = '#8effc1';
-    lines.forEach((line, i) => {
-      ctx.fillText(line, 6 + pad, 6 + pad + lineH * (i + 1) - 4);
-    });
+
+    const grad = ctx.createLinearGradient(0, 0, 0, barH);
+    grad.addColorStop(0, 'rgba(10,8,14,0.85)');
+    grad.addColorStop(1, 'rgba(10,8,14,0.5)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, barH);
+    ctx.strokeStyle = 'rgba(140,90,40,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, barH);
+    ctx.lineTo(CANVAS_WIDTH, barH);
+    ctx.stroke();
+
+    ctx.textBaseline = 'middle';
+
+    ctx.font = 'bold 16px "Courier New", monospace';
+    ctx.fillStyle = PALETTE.scoreGlow;
+    ctx.shadowColor = PALETTE.scoreGlow;
+    ctx.shadowBlur = 6;
+    ctx.fillText(String(score).padStart(6, '0'), 10, barH / 2 + 1);
+    ctx.shadowBlur = 0;
+
+    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.fillStyle = PALETTE.hudRed;
+    ctx.textAlign = 'right';
+    ctx.fillText(`BALL ${ballNumber}`, CANVAS_WIDTH - 10, barH / 2 + 1);
+
+    if (comboActive && combo > 0) {
+      ctx.fillStyle = PALETTE.bruiseLight;
+      ctx.textAlign = 'center';
+      ctx.fillText(`CHAIN x${combo}`, CANVAS_WIDTH / 2, barH / 2 + 1);
+    }
+
     ctx.restore();
   }
 }

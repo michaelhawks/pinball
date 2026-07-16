@@ -31,3 +31,14 @@ export const FLIPPER_KICK_TRANSFER = 1.35;
 export const PLUNGER_MIN_LAUNCH_SPEED = 500;
 export const PLUNGER_MAX_LAUNCH_SPEED = 1750;
 export const PLUNGER_CHARGE_TIME = 0.55; // seconds held to reach full power
+
+// Seconds a bumper is locked out from re-"popping" after a hit. Keeps a
+// ball resting/dragging against a bumper across many substeps from being
+// re-launched every substep -- position push-out and basic reflection still
+// happen every substep regardless (see resolveCircleBumper), only the extra
+// radial kick + score/sound/animation trigger are gated by this.
+export const BUMPER_HIT_COOLDOWN = 0.15;
+// Seconds the hit animation (idle -> reacting -> idle) plays for. Allowed to
+// run a bit longer than the cooldown -- a fast double-tap can start a new
+// hit while the previous animation is still finishing, which reads fine.
+export const BUMPER_HIT_ANIM_DURATION = 0.25;

@@ -87,3 +87,40 @@ export function resolveCircleCapsule(ball, flipper, restitution, kickTransfer) {
   }
   return true;
 }
+
+// Static circular bumper: push-out + reflect, same shape as a wall. Returns
+// the contact normal when a collision was resolved, or null. Deliberately
+// does NOT apply the radial "pop" kick itself -- that's gated by the
+// bumper's own hit-cooldown (see entities/Bumper.js), so a ball resting
+// against a bumper across several substeps still gets pushed out cleanly
+// every substep (no sticking/tunneling) without being re-launched on every
+// one of those substeps (which would happen if the kick lived here).
+export function resolveCircleBumper(ball, bumperX, bumperY, bumperRadius, restitution) {
+  const dx = ball.x - bumperX;
+  const dy = ball.y - bumperY;
+  const combinedRadius = ball.radius + bumperRadius;
+  let dist = Math.hypot(dx, dy);
+
+  if (dist >= combinedRadius) return null;
+
+  let nx, ny;
+  if (dist > 1e-6) {
+    nx = dx / dist;
+    ny = dy / dist;
+  } else {
+    nx = 0;
+    ny = -1;
+    dist = 0;
+  }
+
+  const penetration = combinedRadius - dist;
+  ball.x += nx * penetration;
+  ball.y += ny * penetration;
+
+  const vn = ball.vx * nx + ball.vy * ny;
+  if (vn < 0) {
+    ball.vx -= (1 + restitution) * vn * nx;
+    ball.vy -= (1 + restitution) * vn * ny;
+  }
+  return { nx, ny };
+}

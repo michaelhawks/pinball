@@ -1,7 +1,7 @@
-// Data-driven table layout: original space theme, no relation to any
-// existing table's ramp/bumper/wall arrangement. Milestone 1 only --
-// outer walls, one flipper pair, and the shooter lane. Bumpers, ramps,
-// lanes and multiball geometry are deliberately not scaffolded here yet.
+// Data-driven table layout: original "Zombie Invasion" graveyard/barricade
+// theme, no relation to any existing table's wall/bumper arrangement.
+// Milestone 2 adds bumpers; ramps, lanes and multiball geometry are still
+// deliberately not scaffolded here yet.
 
 const deg = (d) => (d * Math.PI) / 180;
 
@@ -73,3 +73,22 @@ export const BALL_SPAWN = {
   x: PLUNGER_CONFIG.laneCenterX,
   y: PLUNGER_CONFIG.restY,
 };
+
+// Per-type bounce/value tuning -- deliberately distinct rather than one
+// shared bounce constant. Zombie head is the showy, high-value "mechanism"
+// bumper (strongest pop); tombstone is the dullest, heaviest, lowest-value
+// hit; barricade splits the difference.
+export const BUMPER_TYPES = {
+  zombieHead: { points: 150, restitution: 0.9, kickStrength: 900 },
+  barricade: { points: 100, restitution: 0.75, kickStrength: 700 },
+  tombstone: { points: 75, restitution: 0.6, kickStrength: 500 },
+};
+
+// Positions chosen for clearance: >= ball diameter + ~20px from every wall
+// and from each other, so the ball always has a path between them.
+export const BUMPERS = [
+  { type: 'zombieHead', x: 150, y: 180, radius: 20 },
+  { type: 'tombstone', x: 260, y: 200, radius: 19 },
+  { type: 'barricade', x: 205, y: 290, radius: 20 },
+  { type: 'zombieHead', x: 110, y: 320, radius: 20 },
+];
