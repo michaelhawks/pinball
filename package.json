@@ -1,0 +1,10 @@
+{
+  "name": "star-cadet-pinball",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser pinball, Milestone 1: core flipper/ball/plunger feel.",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8080"
+  }
+}
