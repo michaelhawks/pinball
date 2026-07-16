@@ -13,6 +13,7 @@ export class GameLoop {
     this._frameCount = 0;
     this._fpsTimer = 0;
     this.fps = 0;
+    this.physicsTicks = 0;
 
     this._tick = this._tick.bind(this);
   }
@@ -39,6 +40,7 @@ export class GameLoop {
     while (this._accumulator >= PHYSICS_DT) {
       this.update(PHYSICS_DT);
       this._accumulator -= PHYSICS_DT;
+      this.physicsTicks++;
     }
 
     this._frameCount++;

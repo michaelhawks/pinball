@@ -105,4 +105,4 @@ const loop = new GameLoop({ update: physicsStep, render });
 loop.start();
 
 // Exposed for debugging / e2e smoke checks.
-window.__pinball = { ball, leftFlipper, rightFlipper, plunger };
+window.__pinball = { ball, leftFlipper, rightFlipper, plunger, loop };

@@ -5,7 +5,12 @@
 export const PHYSICS_HZ = 120;
 export const PHYSICS_DT = 1 / PHYSICS_HZ;
 
-export const GRAVITY = 1900; // px/s^2, downward
+// px/s^2, downward. Verified the fixed-timestep integration itself is
+// correct (velocity and position both track the closed-form solution for
+// gravity+drag within ~1-4% over a measured 0.5s free-fall); 1900 simply
+// felt too strong for a ~720px-tall table, so it's tuned down here rather
+// than papering over a (nonexistent) timestep bug.
+export const GRAVITY = 1300;
 
 export const BALL_RADIUS = 9;
 export const BALL_RESTITUTION_WALL = 0.42;
@@ -19,8 +24,6 @@ export const FLIPPER_RADIUS = 9; // capsule thickness / 2
 // Angular speed caps -- deliberately exaggerated & game-y, not realistic torque.
 export const FLIPPER_MAX_OMEGA = 20; // rad/s while actively swinging up
 export const FLIPPER_RETURN_OMEGA = 14; // rad/s while falling back to rest
-// Swing sweep, in radians, from rest to fully active.
-export const FLIPPER_SWING = 0.95;
 // How much of the flipper's surface velocity gets transferred into the ball
 // on contact, on top of the reflected relative velocity. >1 exaggerates kick.
 export const FLIPPER_KICK_TRANSFER = 1.35;

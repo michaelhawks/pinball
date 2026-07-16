@@ -5,6 +5,13 @@
 
 const deg = (d) => (d * Math.PI) / 180;
 
+// Flipper rest/active positions are specified as clock-face hours for
+// readability (this is how they were spec'd). Our angle convention is
+// 0 = +x (3 o'clock), increasing clockwise on screen since +y is down --
+// which happens to match clock-hand rotation directly, so hour h maps to
+// (h - 3) * 30 degrees.
+const clock = (hour) => deg((hour - 3) * 30);
+
 export const CANVAS_WIDTH = 400;
 export const CANVAS_HEIGHT = 720;
 
@@ -38,18 +45,22 @@ export const LANE_DIVIDER = [
 
 export const WALL_CHAINS = [OUTER_WALL, LANE_DIVIDER];
 
+// Left flipper: rest ~4:15 (tip down-inward), fired ~1:45 (tip up-inward),
+// sweeping counter-clockwise (decreasing angle) when pressed.
 export const LEFT_FLIPPER = {
   pivotX: 120,
   pivotY: 610,
-  restAngle: deg(150),
-  activeAngle: deg(20),
+  restAngle: clock(4.25),
+  activeAngle: clock(1.75),
 };
 
+// Right flipper: mirror of left -- rest ~7:45, fired ~10:15, sweeping
+// clockwise (increasing angle) when pressed.
 export const RIGHT_FLIPPER = {
   pivotX: 280,
   pivotY: 610,
-  restAngle: deg(30),
-  activeAngle: deg(160),
+  restAngle: clock(7.75),
+  activeAngle: clock(10.25),
 };
 
 export const PLUNGER_CONFIG = {
