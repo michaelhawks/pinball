@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, WALL_CHAINS, DRAIN_Y } from '../game/TableConfig.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, WALL_CHAINS, DRAIN_Y, BUMPERS } from '../game/TableConfig.js';
 import { PALETTE } from '../assets/sprites/palette.js';
 import { PixelSprite } from './PixelSprite.js';
 import { ZOMBIE_HEAD_FRAMES, ZOMBIE_HEAD_PALETTE } from '../assets/sprites/zombieHead.js';
@@ -20,9 +20,10 @@ const BUMPER_SPRITES = {
 export class TableRenderer {
   constructor(ctx) {
     this.ctx = ctx;
-    this.fogPuffs = this._makeFog(14);
-    this.graves = this._makeBackgroundGraves(9);
-    this.trees = this._makeTrees(3);
+    this.fogPuffs = this._makeFog(20);
+    this.groundMist = this._makeGroundMist(5);
+    this.graves = this._makeBackgroundGraves(20);
+    this.trees = this._makeTrees(8);
 
     this.bumperSprites = {
       zombieHead: BUMPER_SPRITES.zombieHead(),
@@ -36,7 +37,7 @@ export class TableRenderer {
     for (let i = 0; i < count; i++) {
       puffs.push({
         x: Math.random() * CANVAS_WIDTH,
-        y: 120 + Math.random() * (CANVAS_HEIGHT - 200),
+        y: 100 + Math.random() * (CANVAS_HEIGHT - 160),
         r: 40 + Math.random() * 70,
         speed: 4 + Math.random() * 8,
         alpha: 0.05 + Math.random() * 0.07,
@@ -46,30 +47,96 @@ export class TableRenderer {
     return puffs;
   }
 
+  // Low, wide drifting mist -- distinct from the floating fog puffs above:
+  // flatter, hugs a handful of fixed heights, reads as ground-hugging haze
+  // rather than airborne cloud.
+  _makeGroundMist(count) {
+    const bands = [];
+    for (let i = 0; i < count; i++) {
+      bands.push({
+        y: 220 + (i / count) * 420 + (Math.random() - 0.5) * 30,
+        rx: 90 + Math.random() * 60,
+        ry: 22 + Math.random() * 10,
+        speed: 3 + Math.random() * 5,
+        alpha: 0.05 + Math.random() * 0.05,
+        dir: Math.random() < 0.5 ? -1 : 1,
+        phase: Math.random() * CANVAS_WIDTH,
+      });
+    }
+    return bands;
+  }
+
+  _drawGroundMistBand(band, t) {
+    const { ctx } = this;
+    const span = CANVAS_WIDTH + 240;
+    const drift = ((t * band.speed * band.dir) % span + span) % span;
+    const x = ((band.phase + drift) % span) - 120;
+    ctx.save();
+    ctx.translate(x, band.y);
+    ctx.scale(band.rx / band.ry, 1);
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, band.ry);
+    grad.addColorStop(0, `rgba(150,158,150,${band.alpha})`);
+    grad.addColorStop(1, 'rgba(150,158,150,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, band.ry, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Rejects candidates that would land on top of a bumper or inside the
+  // shooter lane, so decoration never competes visually with gameplay
+  // elements -- otherwise a denser background reads as clutter instead of
+  // atmosphere.
+  _keepsClearOfPlayfield(x, y, margin = 26) {
+    if (x > 338) return false; // shooter lane corridor
+    for (const b of BUMPERS) {
+      if (Math.hypot(x - b.x, y - b.y) < b.radius + margin) return false;
+    }
+    return true;
+  }
+
   _makeBackgroundGraves(count) {
     const graves = [];
     for (let i = 0; i < count; i++) {
+      let x;
+      let y;
+      let attempts = 0;
+      do {
+        x = 26 + Math.random() * (CANVAS_WIDTH - 52);
+        y = 95 + Math.random() * (CANVAS_HEIGHT - 210);
+        attempts++;
+      } while (!this._keepsClearOfPlayfield(x, y) && attempts < 20);
+
       graves.push({
-        x: 30 + Math.random() * (CANVAS_WIDTH - 60),
-        y: 90 + Math.random() * (CANVAS_HEIGHT - 200),
-        w: 10 + Math.random() * 8,
-        h: 14 + Math.random() * 10,
-        lean: (Math.random() - 0.5) * 0.3,
+        x,
+        y,
+        w: 11 + Math.random() * 9,
+        h: 15 + Math.random() * 11,
+        lean: (Math.random() - 0.5) * 0.32,
+        alpha: 0.55 + Math.random() * 0.3,
       });
     }
     return graves;
   }
 
   _makeTrees(count) {
-    // Kept clear of the moon's corner (top-right) so the silhouettes never
-    // overlap its halo -- see drawBackground/_drawMoon placement.
+    // Spread down both side margins (outside the shooter lane on the
+    // right), not just clustered at the top -- and kept clear of the
+    // moon's corner so silhouettes never overlap its halo.
     const trees = [];
-    const xs = [35, 80, 295];
+    const bands = [
+      { xMin: 24, xMax: 48 }, // left margin
+      { xMin: 356, xMax: 379 }, // right margin, glimpsed behind the fence
+    ];
     for (let i = 0; i < count; i++) {
+      const band = bands[i % 2];
+      const y = 90 + (i / count) * 460 + (Math.random() - 0.5) * 40;
+      const isTopRight = band.xMin > 300 && y < 110;
       trees.push({
-        x: xs[i % xs.length] + (Math.random() - 0.5) * 8,
-        y: 65 + Math.random() * 35,
-        scale: 0.8 + Math.random() * 0.5,
+        x: band.xMin + Math.random() * (band.xMax - band.xMin),
+        y: isTopRight ? y + 60 : y,
+        scale: 0.75 + Math.random() * 0.55,
         seed: Math.random() * 1000,
       });
     }
@@ -98,6 +165,7 @@ export class TableRenderer {
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, CANVAS_HEIGHT - 120, CANVAS_WIDTH, 120);
 
+    for (const band of this.groundMist) this._drawGroundMistBand(band, t);
     for (const p of this.fogPuffs) this._drawFogPuff(p, t);
   }
 
@@ -150,12 +218,12 @@ export class TableRenderer {
     ctx.restore();
   }
 
-  _drawBackgroundGrave({ x, y, w, h, lean }) {
+  _drawBackgroundGrave({ x, y, w, h, lean, alpha }) {
     const { ctx } = this;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(lean);
-    ctx.fillStyle = 'rgba(20,18,24,0.65)';
+    ctx.fillStyle = `rgba(20,18,24,${alpha})`;
     ctx.beginPath();
     ctx.moveTo(-w / 2, h);
     ctx.lineTo(-w / 2, -h * 0.2);

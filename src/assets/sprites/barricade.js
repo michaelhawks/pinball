@@ -1,4 +1,5 @@
 import { PALETTE } from './palette.js';
+import { outlineFrame } from '../../render/PixelSprite.js';
 
 const BARRICADE_GRID_SIZE = 16;
 
@@ -47,7 +48,10 @@ function buildBarricade({ splintered }) {
     }
   }
 
-  return grid.map((row) => row.join(''));
+  return outlineFrame(
+    grid.map((row) => row.join('')),
+    'o'
+  );
 }
 
 export const BARRICADE_PALETTE = {
@@ -59,6 +63,7 @@ export const BARRICADE_PALETTE = {
   a: PALETTE.metalLight,
   k: PALETTE.groundDark,
   s: PALETTE.splinter,
+  o: PALETTE.groundDark,
 };
 
 // [idle, hit]

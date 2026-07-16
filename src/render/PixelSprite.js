@@ -35,6 +35,28 @@ function rasterizeFrame(rows, paletteMap) {
   return off;
 }
 
+// Traces a 1px border around a silhouette's outer edge -- any transparent
+// cell orthogonally adjacent to a non-transparent one becomes the outline
+// character. Shared by every bumper sprite so silhouettes read clearly
+// against a busy background instead of blending into it as a soft blob.
+export function outlineFrame(rowsIn, outlineChar) {
+  const grid = rowsIn.map((row) => row.split(''));
+  const h = grid.length;
+  const w = grid[0].length;
+  const isBody = (x, y) => x >= 0 && y >= 0 && x < w && y < h && grid[y][x] !== '.';
+
+  const result = grid.map((row) => row.slice());
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (grid[y][x] !== '.') continue;
+      if (isBody(x - 1, y) || isBody(x + 1, y) || isBody(x, y - 1) || isBody(x, y + 1)) {
+        result[y][x] = outlineChar;
+      }
+    }
+  }
+  return result.map((row) => row.join(''));
+}
+
 export class PixelSprite {
   // framesRows: array of frames, each frame an array of equal-length strings.
   constructor(framesRows, paletteMap) {
