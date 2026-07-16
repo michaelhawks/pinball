@@ -17,7 +17,17 @@ export const BALL_RESTITUTION_WALL = 0.42;
 // Linear drag applied to velocity per second (rolling/air resistance combined).
 export const BALL_LINEAR_DAMPING = 0.35;
 // Max px a substep may move the ball, to avoid tunneling through thin walls.
+// The substep loop (main.js) recomputes how much time this buys on EVERY
+// substep from the ball's current speed, not just once per tick -- a mid-
+// tick bumper kick immediately shrinks the remaining substeps' step size
+// instead of leaving them sized for the ball's slower pre-kick speed.
 export const MAX_SUBSTEP_DISTANCE = BALL_RADIUS * 0.5;
+// Hard velocity ceiling, mainly defense in depth for stacked bumper kicks
+// landing within the same tick (each kick doesn't reduce the substep
+// loop's remaining time budget, so several in a row could in principle
+// compound past anything reasonable) -- keeps the substep loop's worst-case
+// iteration count bounded regardless of how a spike happens.
+export const MAX_BALL_SPEED = 2600;
 
 export const FLIPPER_LENGTH = 62;
 export const FLIPPER_RADIUS = 9; // capsule thickness / 2

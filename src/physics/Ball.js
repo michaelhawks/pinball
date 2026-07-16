@@ -28,4 +28,17 @@ export class Ball {
   get speed() {
     return Math.hypot(this.vx, this.vy);
   }
+
+  // Defense in depth against pathological velocity spikes (e.g. several
+  // bumper kicks landing in quick succession) -- caps how far a single
+  // substep can need to travel, which bounds the collision loop's worst case
+  // regardless of how the speed got that high.
+  clampSpeed(maxSpeed) {
+    const speed = this.speed;
+    if (speed > maxSpeed) {
+      const scale = maxSpeed / speed;
+      this.vx *= scale;
+      this.vy *= scale;
+    }
+  }
 }

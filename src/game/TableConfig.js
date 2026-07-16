@@ -22,9 +22,18 @@ export const DRAIN_Y = 710;
 // series of segments between consecutive points. Not closed loops -- the
 // drain gap and lane opening are intentional breaks in the boundary.
 
-// Outer boundary: left wall, up and over the top, down the shooter lane's
-// outer wall, to the lane floor.
+// Outer boundary: left flipper outlane guard, left wall, up and over the
+// top, down the shooter lane's outer wall, to the lane floor.
+//
+// The first point closes the gap outside the left flipper's pivot. Both
+// flippers rest and fire with their tip pointing INWARD (see LEFT_FLIPPER/
+// RIGHT_FLIPPER below) -- that means the flipper capsule never sweeps past
+// its own pivot on the outer side, so without a wall there the ball can
+// roll straight down the outside of the flipper and drain untouched. The
+// guard point sits right at the pivot's outer edge (pivotX - flipper
+// radius) so there's no ball-sized gap between it and the flipper.
 export const OUTER_WALL = [
+  { x: 112, y: 608 }, // left flipper outlane guard (seals outside of pivot)
   { x: 60, y: 615 }, // left outlane funnel, guides toward left flipper
   { x: 20, y: 560 },
   { x: 20, y: 90 },
@@ -36,11 +45,26 @@ export const OUTER_WALL = [
 ];
 
 // Shooter-lane divider: separates the lane from the main playfield up top,
-// then curves in to double as the right outlane guide lower down.
+// curves in to double as the right outlane guide lower down, then closes
+// the right flipper's outlane -- same reasoning as the OUTER_WALL guard
+// above (right flipper only sweeps inward, leaving its outside open).
+//
+// This needs three extra points, not one: a tight point right at the
+// pivot's outer edge (292,608) to seal the immediate gap beside the
+// flipper, then straight down to lane-floor height (292,690), then across
+// to (350,690) to meet OUTER_WALL's existing lane floor point exactly.
+// Stopping at just the pivot point (as an earlier version of this fix did)
+// dead-ends the wall there and leaves the whole pocket between it and the
+// shooter lane's own floor (roughly x 292-350, y 608-690) open on the
+// bottom -- which is exactly how the ball kept draining down the right
+// side even after the immediate pivot gap was sealed.
 export const LANE_DIVIDER = [
   { x: 350, y: 110 },
   { x: 348, y: 480 },
   { x: 312, y: 590 },
+  { x: 292, y: 608 }, // right flipper outlane guard (seals outside of pivot)
+  { x: 292, y: 690 }, // ...down to lane-floor height...
+  { x: 350, y: 690 }, // ...and across to meet OUTER_WALL's lane floor -- no gap
 ];
 
 export const WALL_CHAINS = [OUTER_WALL, LANE_DIVIDER];

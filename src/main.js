@@ -1,7 +1,7 @@
 import { Ball } from './physics/Ball.js';
 import { Flipper } from './physics/Flipper.js';
 import { resolveCircleSegment, resolveCircleCapsule, resolveCircleBumper } from './physics/collision.js';
-import { BALL_RESTITUTION_WALL, FLIPPER_KICK_TRANSFER, MAX_SUBSTEP_DISTANCE } from './physics/constants.js';
+import { BALL_RESTITUTION_WALL, FLIPPER_KICK_TRANSFER, MAX_SUBSTEP_DISTANCE, MAX_BALL_SPEED } from './physics/constants.js';
 import { Plunger } from './entities/Plunger.js';
 import { Bumper } from './entities/Bumper.js';
 import {
@@ -90,6 +90,8 @@ function resolveCollisions() {
     ball.x = CANVAS_WIDTH - ball.radius;
     if (ball.vx > 0) ball.vx *= -BALL_RESTITUTION_WALL;
   }
+
+  ball.clampSpeed(MAX_BALL_SPEED);
 }
 
 function checkDrain() {
@@ -109,15 +111,26 @@ function physicsStep(dt) {
   for (const bumper of bumpers) bumper.update(dt);
 
   if (!ball.heldByPlunger) {
-    // Adaptive substepping: keep each substep's travel distance under the
-    // ball radius so fast-moving balls can't skip through thin walls
-    // within a single physics tick.
-    const speed = ball.speed;
-    const substeps = Math.min(8, Math.max(1, Math.ceil((speed * dt) / MAX_SUBSTEP_DISTANCE)));
-    const subDt = dt / substeps;
-    for (let i = 0; i < substeps; i++) {
+    // Adaptive substepping, recomputed every iteration from the ball's
+    // CURRENT speed -- not once per tick from the speed at the top of it.
+    // A bumper kick mid-tick can multiply the ball's speed instantly; if the
+    // remaining substeps that tick kept using a step size sized for the
+    // slower pre-kick speed, they could cover more than a ball-radius of
+    // travel in one step and skip clean through a thin wall (this is
+    // exactly how the ball was tunneling into the shooter lane). Chewing
+    // through a fixed time budget with a step size re-derived from the
+    // live speed each time keeps every step's travel bounded regardless of
+    // when within the tick the ball got fast.
+    let remaining = dt;
+    let guard = 0;
+    while (remaining > 1e-9 && guard < 64) {
+      const speed = ball.speed;
+      const maxSubDt = speed > 1e-6 ? MAX_SUBSTEP_DISTANCE / speed : remaining;
+      const subDt = Math.min(remaining, maxSubDt);
       ball.integrate(subDt);
       resolveCollisions();
+      remaining -= subDt;
+      guard++;
     }
     checkDrain();
   }
@@ -148,5 +161,7 @@ function render(fps) {
 const loop = new GameLoop({ update: physicsStep, render });
 loop.start();
 
-// Exposed for debugging / e2e smoke checks.
-window.__pinball = { ball, leftFlipper, rightFlipper, plunger, bumpers, loop, sound, scoreManager };
+// Exposed for debugging / e2e smoke checks. physicsStep is included so
+// tests can step the simulation deterministically (loop.stop(), then call
+// physicsStep(dt) directly) instead of racing the real-time rAF loop.
+window.__pinball = { ball, leftFlipper, rightFlipper, plunger, bumpers, loop, sound, scoreManager, physicsStep };
