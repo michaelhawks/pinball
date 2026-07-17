@@ -32,10 +32,19 @@ export const DRAIN_Y = 710;
 // roll straight down the outside of the flipper and drain untouched. The
 // guard point sits right at the pivot's outer edge (pivotX - flipper
 // radius) so there's no ball-sized gap between it and the flipper.
+//
+// This is a single straight segment from the guard point to the outer
+// wall, deliberately NOT routed through an intermediate waypoint. An
+// earlier version bent through (60,615), and a slow ball sliding down
+// into that corner would get permanently wedged there -- our collision
+// resolution has no friction/tangential sliding, so a concave corner
+// (two segments meeting at an angle, pushing the ball back and forth
+// between them) can be a stable trap forever, not just a resting point.
+// One straight incline has no such corner, and its slope still funnels
+// a resting ball down toward the guard point/pivot under gravity.
 export const OUTER_WALL = [
   { x: 112, y: 608 }, // left flipper outlane guard (seals outside of pivot)
-  { x: 60, y: 615 }, // left outlane funnel, guides toward left flipper
-  { x: 20, y: 560 },
+  { x: 20, y: 560 }, // straight to the outer wall -- no intermediate corner to trap in
   { x: 20, y: 90 },
   { x: 55, y: 20 },
   { x: 330, y: 20 },

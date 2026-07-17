@@ -52,3 +52,17 @@ export const BUMPER_HIT_COOLDOWN = 0.15;
 // run a bit longer than the cooldown -- a fast double-tap can start a new
 // hit while the previous animation is still finishing, which reads fine.
 export const BUMPER_HIT_ANIM_DURATION = 0.25;
+
+// Stuck-ball recovery. Our collision resolution has no friction/tangential
+// sliding, so a slow ball resting in a concave corner (two walls, or a wall
+// and the flipper's own fixed pivot circle) can find a stable numerical
+// equilibrium where each wall's push-out and reflection cancel the other's
+// every tick, forever -- a real, reproducible trap, not just a slow rest.
+// Geometry has been checked for the obvious cases, but rather than assume
+// every corner on the table is provably trap-free, the ball gets nudged
+// free if it ever stays below this speed for this long while in open play
+// (i.e. not resting on the plunger). Below the speed a normal bounce or
+// flipper-adjacent settle would produce, well above what a genuine trap's
+// residual "speed" looks like (which is a fixed non-progressing point).
+export const STUCK_SPEED_THRESHOLD = 20;
+export const STUCK_TIMEOUT_SECONDS = 1;

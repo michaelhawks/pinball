@@ -1,7 +1,14 @@
 import { Ball } from './physics/Ball.js';
 import { Flipper } from './physics/Flipper.js';
 import { resolveCircleSegment, resolveCircleCapsule, resolveCircleBumper } from './physics/collision.js';
-import { BALL_RESTITUTION_WALL, FLIPPER_KICK_TRANSFER, MAX_SUBSTEP_DISTANCE, MAX_BALL_SPEED } from './physics/constants.js';
+import {
+  BALL_RESTITUTION_WALL,
+  FLIPPER_KICK_TRANSFER,
+  MAX_SUBSTEP_DISTANCE,
+  MAX_BALL_SPEED,
+  STUCK_SPEED_THRESHOLD,
+  STUCK_TIMEOUT_SECONDS,
+} from './physics/constants.js';
 import { Plunger } from './entities/Plunger.js';
 import { Bumper } from './entities/Bumper.js';
 import {
@@ -53,6 +60,56 @@ window.addEventListener('keydown', unlockAudioOnce);
 window.addEventListener('pointerdown', unlockAudioOnce);
 
 let elapsed = 0;
+let stuckTimer = 0;
+let stuckNudgeStreak = 0;
+
+// See STUCK_SPEED_THRESHOLD/STUCK_TIMEOUT_SECONDS -- some corner of the
+// table's collision geometry can in principle trap a slow ball in a stable
+// numerical equilibrium forever (no friction/tangential sliding in this
+// collision model). Rather than trust every corner has been hand-verified
+// trap-free, nudge the ball free if it's stayed near-motionless in open
+// play for too long.
+//
+// A gentle nudge is enough to break a small corner-notch trap, but it can't
+// reliably clear a much larger fully-enclosed pocket (e.g. a weak plunger
+// charge leaving the ball resting in the shooter lane, ~500px of vertical
+// climb from the only way back out) -- it just gets re-trapped nearby and
+// needs nudging again shortly after. Rather than make the nudge strong
+// enough to blast out of ANY enclosure (which would look absurd for the
+// common small-trap case), escalate: after a few nudge attempts without the
+// streak ever getting reset (which only happens once the ball is safely
+// held again -- see below), fall back to a full respawn via the plunger.
+// That guarantees a bounded worst case regardless of what shape of pocket
+// the ball ends up in. (Resetting the streak on "the ball is moving fast
+// right now" doesn't work -- the nudge itself is a velocity spike, so that
+// would immediately reset the streak on the very next tick regardless of
+// whether the ball actually escaped or just got re-trapped a few px away.)
+const STUCK_NUDGE_ATTEMPTS_BEFORE_RESPAWN = 2;
+
+function unstickBallIfNeeded(dt) {
+  if (ball.heldByPlunger) {
+    stuckTimer = 0;
+    stuckNudgeStreak = 0;
+    return;
+  }
+  if (ball.speed < STUCK_SPEED_THRESHOLD) {
+    stuckTimer += dt;
+  } else {
+    stuckTimer = 0;
+  }
+  if (stuckTimer < STUCK_TIMEOUT_SECONDS) return;
+
+  stuckTimer = 0;
+  stuckNudgeStreak += 1;
+  if (stuckNudgeStreak > STUCK_NUDGE_ATTEMPTS_BEFORE_RESPAWN) {
+    stuckNudgeStreak = 0;
+    plunger.attachBall(ball);
+    scoreManager.nextBall();
+    return;
+  }
+  ball.vx += (Math.random() - 0.5) * 600;
+  ball.vy -= 380;
+}
 
 function handleBumperHit(bumper) {
   sound.playHitFor(bumper.type);
@@ -133,6 +190,7 @@ function physicsStep(dt) {
       guard++;
     }
     checkDrain();
+    unstickBallIfNeeded(dt);
   }
 
   elapsed += dt;
