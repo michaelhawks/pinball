@@ -149,6 +149,12 @@
     font-size: 13px;
     font-weight: bold;
   }
+  .history span.word {
+    width: auto;
+    padding: 0 8px;
+    border-radius: 14px;
+    color: var(--bolt);
+  }
 </style>
 </head>
 <body>
@@ -179,11 +185,11 @@
 <script>
 (function () {
   const CX = 200, CY = 200, R = 190;
-  const SEGMENTS = 6;
+  const SEGMENTS = 7;
   const SEGMENT_DEG = 360 / SEGMENTS;
   // Boundary at 0deg (12 o'clock) sits between numbers 2 and 3, matching
-  // the physical card: clockwise order from 12 o'clock is 3,4,5,6,1,2.
-  const ORDER = [3, 4, 5, 6, 1, 2];
+  // the physical card: clockwise order from 12 o'clock is 3,4,5,6,SWIPE,1,2.
+  const ORDER = [3, 4, 5, 6, "SWIPE", 1, 2];
 
   function toRad(deg) { return (deg - 90) * Math.PI / 180; }
   // deg here uses 0 = 12 o'clock, clockwise positive. Convert to standard
@@ -268,25 +274,27 @@
     svg.appendChild(glow);
   }
 
-  // Numbers
+  // Numbers + the SWIPE wedge label
   for (let i = 0; i < SEGMENTS; i++) {
     const centerDeg = segmentCenterAngle(i);
-    const num = ORDER[i];
-    const pos = pointOnCircle(CX, CY, 122, centerDeg);
+    const value = ORDER[i];
+    const isWord = typeof value === "string";
+    const pos = pointOnCircle(CX, CY, isWord ? 150 : 122, centerDeg);
     const rot = readableRotation(centerDeg);
     const g = el("g", { transform: `translate(${pos.x.toFixed(1)},${pos.y.toFixed(1)}) rotate(${rot.toFixed(1)})` });
     const text = el("text", {
       "text-anchor": "middle",
       "dominant-baseline": "middle",
       "font-family": "'Arial Black', Impact, sans-serif",
-      "font-size": "56",
+      "font-size": isWord ? "26" : "54",
       "font-weight": "900",
-      fill: "#f5ecd8",
+      "letter-spacing": isWord ? "-0.5" : "0",
+      fill: isWord ? "#fff2c4" : "#f5ecd8",
       stroke: "#0e1f2f",
-      "stroke-width": "5",
+      "stroke-width": isWord ? "3.5" : "5",
       "paint-order": "stroke fill"
     });
-    text.textContent = String(num);
+    text.textContent = isWord ? value : String(value);
     g.appendChild(text);
     svg.appendChild(g);
   }
@@ -326,13 +334,15 @@
     } catch (e) { /* audio unavailable, ignore */ }
   }
 
-  function updateHistory(n) {
-    history.unshift(n);
+  function updateHistory(value) {
+    history.unshift(value);
     if (history.length > 10) history.pop();
     historyEl.innerHTML = "";
-    history.forEach((n) => {
+    history.forEach((v) => {
       const s = document.createElement("span");
-      s.textContent = n;
+      const isWord = typeof v === "string";
+      s.textContent = isWord ? "SW" : v;
+      if (isWord) s.classList.add("word");
       historyEl.appendChild(s);
     });
   }
@@ -345,7 +355,8 @@
     resultNum.textContent = "";
 
     const winningIndex = Math.floor(Math.random() * SEGMENTS);
-    const winningNumber = ORDER[winningIndex];
+    const winningValue = ORDER[winningIndex];
+    const isWord = typeof winningValue === "string";
     const segCenter = segmentCenterAngle(winningIndex);
     // land somewhere inside the segment, away from the dividing lines
     const jitter = (Math.random() - 0.5) * (SEGMENT_DEG - 14);
@@ -367,9 +378,9 @@
       needle.classList.remove("spinning");
       spinning = false;
       spinBtn.disabled = false;
-      resultNum.textContent = winningNumber;
-      resultLabel.textContent = "You spun a " + winningNumber + "!";
-      updateHistory(winningNumber);
+      resultNum.textContent = winningValue;
+      resultLabel.textContent = isWord ? "SWIPE! Spin again" : "You spun a " + winningValue + "!";
+      updateHistory(winningValue);
       playTone(660, 0.25, "triangle", 0);
       playTone(880, 0.35, "triangle", 0.08);
     }, 4300);
