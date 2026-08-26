@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Wild Kratts Spinner</title>
+<style>
+  :root {
+    --disc-light: #bcd4e6;
+    --disc-mid: #8fb3cf;
+    --disc-dark: #6f97b8;
+    --ink: #142433;
+    --bolt: #fbe27a;
+    --bolt-edge: #d9a93a;
+  }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: radial-gradient(circle at 50% 20%, #2c5f8a 0%, #163350 60%, #0c1f33 100%);
+    color: #fff;
+    font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 16px 48px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: clamp(24px, 5vw, 36px);
+    letter-spacing: 1px;
+    text-shadow: 0 3px 0 #04101c;
+    text-align: center;
+  }
+  .subtitle {
+    margin: 0 0 20px;
+    opacity: 0.8;
+    font-size: 14px;
+    text-align: center;
+  }
+  .wheel-wrap {
+    position: relative;
+    width: min(88vw, 420px);
+    height: min(88vw, 420px);
+    touch-action: manipulation;
+  }
+  .wheel-wrap svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,0.5));
+  }
+  .needle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14%;
+    height: 46%;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(0deg);
+    pointer-events: none;
+  }
+  .needle svg { width: 100%; height: 100%; overflow: visible; }
+  .needle.spinning {
+    transition: transform 4200ms cubic-bezier(0.12, 0.67, 0.1, 1);
+  }
+  .hub-cap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9%;
+    height: 9%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff8dc, #c9982f 70%, #7a5915 100%);
+    border: 2px solid #4a3608;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+  .controls {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  #spinBtn {
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #fff;
+    background: linear-gradient(180deg, #ff7a3c, #e8451f 60%, #b8300f);
+    border: 3px solid #fff2e0;
+    border-radius: 999px;
+    padding: 14px 48px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #7a1f08, 0 10px 18px rgba(0,0,0,0.4);
+    transition: transform 80ms ease, box-shadow 80ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #spinBtn:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #7a1f08, 0 6px 12px rgba(0,0,0,0.4);
+  }
+  #spinBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .result {
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .result .num {
+    font-size: 44px;
+    font-weight: 900;
+    color: var(--bolt);
+    text-shadow: 0 0 10px rgba(251,226,122,0.6), 2px 2px 0 #04101c;
+    min-height: 52px;
+  }
+  .result .label {
+    font-size: 13px;
+    opacity: 0.75;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .history {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 360px;
+  }
+  .history span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    font-size: 13px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+  <h1>Wild Kratts Spinner</h1>
+  <p class="subtitle">Tap SPIN to flick the arrow</p>
+
+  <div class="wheel-wrap">
+    <svg id="wheelSvg" viewBox="0 0 400 400"></svg>
+    <div class="needle" id="needle">
+      <svg viewBox="0 0 60 220" preserveAspectRatio="xMidYMax meet">
+        <polygon points="30,0 46,60 14,60" fill="#e8451f" stroke="#4a0e02" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="20" y="55" width="20" height="150" rx="6" fill="#f2f2f2" stroke="#4a0e02" stroke-width="3"/>
+        <rect x="24" y="58" width="12" height="140" rx="4" fill="#ff7a3c" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="hub-cap"></div>
+  </div>
+
+  <div class="controls">
+    <button id="spinBtn" type="button">SPIN</button>
+    <div class="result">
+      <div class="num" id="resultNum"></div>
+      <div class="label" id="resultLabel"></div>
+    </div>
+    <div class="history" id="history"></div>
+  </div>
+
+<script>
+(function () {
+  const CX = 200, CY = 200, R = 190;
+  const SEGMENTS = 6;
+  const SEGMENT_DEG = 360 / SEGMENTS;
+  // Boundary at 0deg (12 o'clock) sits between numbers 2 and 3, matching
+  // the physical card: clockwise order from 12 o'clock is 3,4,5,6,1,2.
+  const ORDER = [3, 4, 5, 6, 1, 2];
+
+  function toRad(deg) { return (deg - 90) * Math.PI / 180; }
+  // deg here uses 0 = 12 o'clock, clockwise positive. Convert to standard
+  // math angle (0 = 3 o'clock, counter-clockwise) for trig, then place.
+  function pointOnCircle(cx, cy, r, degFrom12) {
+    const rad = (degFrom12 - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function segmentCenterAngle(index) {
+    // index 0..5 -> boundary at index*60, center at index*60 + 30
+    return index * SEGMENT_DEG + SEGMENT_DEG / 2;
+  }
+
+  function readableRotation(deg) {
+    let d = ((deg + 180) % 360 + 360) % 360 - 180; // normalize -180..180
+    if (d > 90) d -= 180;
+    if (d < -90) d += 180;
+    return d;
+  }
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("wheelSvg");
+
+  function el(tag, attrs) {
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // Defs: gradients
+  const defs = el("defs", {});
+  const bgGrad = el("radialGradient", { id: "discGrad", cx: "50%", cy: "45%", r: "70%" });
+  bgGrad.appendChild(el("stop", { offset: "0%", "stop-color": "#d7e6f2" }));
+  bgGrad.appendChild(el("stop", { offset: "55%", "stop-color": "#a9c8dd" }));
+  bgGrad.appendChild(el("stop", { offset: "100%", "stop-color": "#7fa8c6" }));
+  defs.appendChild(bgGrad);
+  svg.appendChild(defs);
+
+  // Outer card + disc
+  svg.appendChild(el("rect", { x: 4, y: 4, width: 392, height: 392, rx: 26, fill: "#c7dcea", stroke: "#0e1f2f", "stroke-width": 6 }));
+  svg.appendChild(el("circle", { cx: CX, cy: CY, r: R, fill: "url(#discGrad)", stroke: "#0e1f2f", "stroke-width": 6 }));
+
+  // Segment divider lines
+  for (let i = 0; i < SEGMENTS; i++) {
+    const p = pointOnCircle(CX, CY, R, i * SEGMENT_DEG);
+    svg.appendChild(el("line", { x1: CX, y1: CY, x2: p.x, y2: p.y, stroke: "#0e1f2f", "stroke-width": 5, "stroke-linecap": "round" }));
+  }
+
+  // Lightning bolts radiating from the hub, one per segment
+  function boltPath(centerDeg) {
+    const jag = [0, 10, -8, 14, -6, 18];
+    let d = `M ${CX} ${CY} `;
+    let r = 20;
+    for (let i = 1; i < jag.length; i++) {
+      r += 28;
+      const p = pointOnCircle(CX, CY, r, centerDeg + jag[i] * 0.6);
+      d += `L ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+    }
+    return d;
+  }
+  for (let i = 0; i < SEGMENTS; i++) {
+    const centerDeg = segmentCenterAngle(i);
+    const path = el("path", {
+      d: boltPath(centerDeg),
+      fill: "none",
+      stroke: "#fff6d8",
+      "stroke-width": 5,
+      "stroke-linejoin": "round",
+      "stroke-linecap": "round",
+      opacity: 0.9
+    });
+    const glow = el("path", {
+      d: boltPath(centerDeg),
+      fill: "none",
+      stroke: "var(--bolt-edge)",
+      "stroke-width": 2,
+      "stroke-linejoin": "round",
+      "stroke-linecap": "round"
+    });
+    svg.appendChild(path);
+    svg.appendChild(glow);
+  }
+
+  // Numbers
+  for (let i = 0; i < SEGMENTS; i++) {
+    const centerDeg = segmentCenterAngle(i);
+    const num = ORDER[i];
+    const pos = pointOnCircle(CX, CY, 122, centerDeg);
+    const rot = readableRotation(centerDeg);
+    const g = el("g", { transform: `translate(${pos.x.toFixed(1)},${pos.y.toFixed(1)}) rotate(${rot.toFixed(1)})` });
+    const text = el("text", {
+      "text-anchor": "middle",
+      "dominant-baseline": "middle",
+      "font-family": "'Arial Black', Impact, sans-serif",
+      "font-size": "56",
+      "font-weight": "900",
+      fill: "#f5ecd8",
+      stroke: "#0e1f2f",
+      "stroke-width": "5",
+      "paint-order": "stroke fill"
+    });
+    text.textContent = String(num);
+    g.appendChild(text);
+    svg.appendChild(g);
+  }
+
+  // Hub ring
+  svg.appendChild(el("circle", { cx: CX, cy: CY, r: 14, fill: "#0e1f2f" }));
+  svg.appendChild(el("circle", { cx: CX, cy: CY, r: 7, fill: "#fff6d8" }));
+
+  // --- Spin logic ---
+  const needle = document.getElementById("needle");
+  const spinBtn = document.getElementById("spinBtn");
+  const resultNum = document.getElementById("resultNum");
+  const resultLabel = document.getElementById("resultLabel");
+  const historyEl = document.getElementById("history");
+
+  let currentRotation = 0;
+  let spinning = false;
+  const history = [];
+
+  function playTone(freq, duration, type, delay) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!playTone._ctx) playTone._ctx = new AudioCtx();
+      const ctx = playTone._ctx;
+      const t0 = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.15, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.02);
+    } catch (e) { /* audio unavailable, ignore */ }
+  }
+
+  function updateHistory(n) {
+    history.unshift(n);
+    if (history.length > 10) history.pop();
+    historyEl.innerHTML = "";
+    history.forEach((n) => {
+      const s = document.createElement("span");
+      s.textContent = n;
+      historyEl.appendChild(s);
+    });
+  }
+
+  function spin() {
+    if (spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    resultLabel.textContent = "";
+    resultNum.textContent = "";
+
+    const winningIndex = Math.floor(Math.random() * SEGMENTS);
+    const winningNumber = ORDER[winningIndex];
+    const segCenter = segmentCenterAngle(winningIndex);
+    // land somewhere inside the segment, away from the dividing lines
+    const jitter = (Math.random() - 0.5) * (SEGMENT_DEG - 14);
+    const targetWithinTurn = segCenter + jitter;
+
+    const extraTurns = 6 + Math.floor(Math.random() * 3); // 6-8 full spins
+    const currentMod = ((currentRotation % 360) + 360) % 360;
+    let delta = targetWithinTurn - currentMod;
+    delta = ((delta % 360) + 360) % 360; // 0..360 forward delta
+    const finalRotation = currentRotation + extraTurns * 360 + delta;
+
+    needle.classList.add("spinning");
+    needle.style.transform = `translate(-50%, -100%) rotate(${finalRotation}deg)`;
+    currentRotation = finalRotation;
+
+    playTone(440, 0.08, "square", 0);
+
+    window.setTimeout(() => {
+      needle.classList.remove("spinning");
+      spinning = false;
+      spinBtn.disabled = false;
+      resultNum.textContent = winningNumber;
+      resultLabel.textContent = "You spun a " + winningNumber + "!";
+      updateHistory(winningNumber);
+      playTone(660, 0.25, "triangle", 0);
+      playTone(880, 0.35, "triangle", 0.08);
+    }, 4300);
+  }
+
+  spinBtn.addEventListener("click", spin);
+})();
+</script>
+</body>
+</html>
